@@ -9,6 +9,7 @@ from torchvision.utils import save_image
 from torch.utils.data import DataLoader
 from torchvision import datasets
 from torch.autograd import Variable
+import torchvision.datasets as dset
 
 import torch.nn as nn
 import torch.nn.functional as F
@@ -34,7 +35,7 @@ parser.add_argument("--b2", type=float, default=0.999, help="adam: decay of firs
 parser.add_argument("--n_cpu", type=int, default=8, help="number of cpu threads to use during batch generation")
 parser.add_argument("--latent_dim", type=int, default=100, help="dimensionality of the latent space")
 parser.add_argument("--img_size", type=int, default=32, help="size of each image dimension")
-parser.add_argument("--channels", type=int, default=3, help="number of image channels")
+parser.add_argument("--channels", type=int, default=3, help="number of image channels") ## 1 of mnist dataset
 parser.add_argument("--sample_interval", type=int, default=400, help="interval between image sampling")
 opt = parser.parse_args()
 print(opt)
@@ -131,8 +132,21 @@ os.makedirs("../../data/svhn", exist_ok=True)
 dataloader = torch.utils.data.DataLoader(
     datasets.SVHN(
         "../../data/svhn",
-        # train=True,
         split='train',
+        download=True,
+        transform=transforms.Compose(
+            [transforms.Resize(opt.img_size), transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
+        ),
+    ),
+    batch_size=opt.batch_size,
+    shuffle=True,
+)
+
+os.makedirs("../../data/cifar10", exist_ok=True)
+dataloader = torch.utils.data.DataLoader(
+    datasets.CIFAR10(
+        "../../data/cifar10",
+        train=True,
         download=True,
         transform=transforms.Compose(
             [transforms.Resize(opt.img_size), transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
@@ -155,7 +169,6 @@ dataloader = torch.utils.data.DataLoader(
 #     batch_size=opt.batch_size,
 #     shuffle=True,
 # )
-
 
 # Optimizers
 optimizer_G = torch.optim.Adam(generator.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
@@ -245,6 +258,7 @@ for epoch in range(opt.n_epochs):
 #     plt.title("Last Saved Fake Image")
 #     plt.show()
 
+#plot g_loss and d_loss
 plt.figure(figsize=(10, 5))
 plt.title("Generator and Discriminator Loss During Training")
 plt.plot(g_loss_list, label="Generator Loss")
