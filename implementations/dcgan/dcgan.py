@@ -14,10 +14,19 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch
 
+import matplotlib.pyplot as plt
+import torchvision.utils as vutils
+from PIL import Image
+
+from sklearn.svm import SVC
+from sklearn.model_selection import train_test_split
+
+import torchvision.models as models
+
 os.makedirs("images", exist_ok=True)
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--n_epochs", type=int, default=200, help="number of epochs of training")
+parser.add_argument("--n_epochs", type=int, default=100, help="number of epochs of training")
 parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
 parser.add_argument("--lr", type=float, default=0.0002, help="adam: learning rate")
 parser.add_argument("--b1", type=float, default=0.5, help="adam: decay of first order momentum of gradient")
@@ -118,11 +127,12 @@ generator.apply(weights_init_normal)
 discriminator.apply(weights_init_normal)
 
 # Configure data loader
-os.makedirs("../../data/cifar10", exist_ok=True)
+os.makedirs("../../data/svhn", exist_ok=True)
 dataloader = torch.utils.data.DataLoader(
-    datasets.CIFAR10(
-        "../../data/cifar10",
-        train=True,
+    datasets.SVHN(
+        "../../data/svhn",
+        # train=True,
+        split='train',
         download=True,
         transform=transforms.Compose(
             [transforms.Resize(opt.img_size), transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
@@ -131,6 +141,21 @@ dataloader = torch.utils.data.DataLoader(
     batch_size=opt.batch_size,
     shuffle=True,
 )
+
+# os.makedirs("../../data/mnist", exist_ok=True)
+# dataloader = torch.utils.data.DataLoader(
+#     datasets.MNIST(
+#         "../../data/mnist",
+#         train=True,
+#         download=True,
+#         transform=transforms.Compose(
+#             [transforms.Resize(opt.img_size), transforms.ToTensor(), transforms.Normalize([0.5], [0.5])]
+#         ),
+#     ),
+#     batch_size=opt.batch_size,
+#     shuffle=True,
+# )
+
 
 # Optimizers
 optimizer_G = torch.optim.Adam(generator.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
@@ -141,6 +166,9 @@ Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 # ----------
 #  Training
 # ----------
+d_loss_list = []
+g_loss_list = []
+img_list = []
 
 for epoch in range(opt.n_epochs):
     for i, (imgs, _) in enumerate(dataloader):
@@ -184,6 +212,8 @@ for epoch in range(opt.n_epochs):
         d_loss.backward()
         optimizer_D.step()
 
+        g_loss_list.append(g_loss.item())
+        d_loss_list.append(d_loss.item())
         print(
             "[Epoch %d/%d] [Batch %d/%d] [D loss: %f] [G loss: %f]"
             % (epoch, opt.n_epochs, i, len(dataloader), d_loss.item(), g_loss.item())
@@ -192,3 +222,35 @@ for epoch in range(opt.n_epochs):
         batches_done = epoch * len(dataloader) + i
         if batches_done % opt.sample_interval == 0:
             save_image(gen_imgs.data[:25], "images/%d.png" % batches_done, nrow=5, normalize=True)
+        # img_list.append(vutils.make_grid(gen_imgs.data[:25], padding=2, normalize=True))
+
+# # Grab a batch of real images from the dataloader
+# real_batch = next(iter(dataloader))
+
+# # Move the real images to CPU
+# real_batch = [image.cpu() for image in real_batch]
+
+# # Plot the real images
+# plt.figure(figsize=(15, 15))
+# plt.subplot(1, 2, 1)
+# plt.axis("off")
+# plt.title("Real Images")
+# plt.imshow(np.transpose(vutils.make_grid(real_batch[0][:64], padding=2, normalize=True), (1, 2, 0)))
+
+# last_saved_image_path = f"images/{batches_done - (batches_done % opt.sample_interval)}.png"
+# if os.path.exists(last_saved_image_path):
+#     last_saved_image = Image.open(last_saved_image_path)
+#     plt.subplot(1, 2, 2)
+#     plt.imshow(last_saved_image)
+#     plt.title("Last Saved Fake Image")
+#     plt.show()
+
+plt.figure(figsize=(10, 5))
+plt.title("Generator and Discriminator Loss During Training")
+plt.plot(g_loss_list, label="Generator Loss")
+plt.plot(d_loss_list, label="Discriminator Loss")
+plt.xlabel("Iterations")
+plt.ylabel("Loss")
+plt.legend()
+plt.show()
+
