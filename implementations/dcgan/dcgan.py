@@ -142,19 +142,19 @@ dataloader = torch.utils.data.DataLoader(
     shuffle=True,
 )
 
-os.makedirs("../../data/cifar10", exist_ok=True)
-dataloader = torch.utils.data.DataLoader(
-    datasets.CIFAR10(
-        "../../data/cifar10",
-        train=True,
-        download=True,
-        transform=transforms.Compose(
-            [transforms.Resize(opt.img_size), transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
-        ),
-    ),
-    batch_size=opt.batch_size,
-    shuffle=True,
-)
+# os.makedirs("../../data/cifar10", exist_ok=True)
+# dataloader = torch.utils.data.DataLoader(
+#     datasets.CIFAR10(
+#         "../../data/cifar10",
+#         train=True,
+#         download=True,
+#         transform=transforms.Compose(
+#             [transforms.Resize(opt.img_size), transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
+#         ),
+#     ),
+#     batch_size=opt.batch_size,
+#     shuffle=True,
+# )
 
 # os.makedirs("../../data/mnist", exist_ok=True)
 # dataloader = torch.utils.data.DataLoader(
